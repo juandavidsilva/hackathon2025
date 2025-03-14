@@ -1,8 +1,9 @@
-import json
+
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 import time
+import json
 
 # Streamlit UI configuration
 st.set_page_config(page_title="JSON Battery Data Analyzer", layout="wide")
