@@ -376,96 +376,101 @@ def process_file(uploaded_file):
 
                
 
-                st.subheader("🔌 Battery State of Health (SOH) - Coulomb Counting")
-
-                # Inputs from user
-                col1, col2, col3 = st.columns(3)
-
-                with col1:
-                    nominal_capacity = st.number_input(
-                        "Nominal Battery Capacity (Ah):",
-                        value=33.0,
-                        min_value=1.0,
-                        step=0.1,
-                        help="Enter the original nominal capacity (Ah) of your battery."
-                    )
-
-                with col2:
-                    t1_date = st.date_input(
-                        "Integration Start Date (t1):",
-                        value=voltage_battery_df["Timestamp"].min().date()
-                    )
-
-                with col3:
-                    t2_date = st.date_input(
-                        "Integration End Date (t2):",
-                        value=voltage_battery_df["Timestamp"].max().date()
-                    )
-
-                # Timestamps UTC explícitos
-                t1 = pd.Timestamp(datetime.combine(t1_date, datetime.min.time()), tz='UTC')
-                t2 = pd.Timestamp(datetime.combine(t2_date, datetime.max.time()), tz='UTC')
-
-                # Asegúrate que el DataFrame esté disponible
-                current_battery_df = series_data.get("Current-Battery")
-
-                if current_battery_df is not None:
-                    mask = (current_battery_df["Timestamp"] >= t1) & (current_battery_df["Timestamp"] <= t2)
-                    integration_df = current_battery_df.loc[mask]
-
-                    if integration_df.empty:
-                        st.warning("No Current-Battery data within selected time range.")
-                    else:
-                        integration_df = integration_df.sort_values(by="Timestamp")
-                        integration_df['Time_diff'] = integration_df['Timestamp'].diff().dt.total_seconds().fillna(0) / 3600
-                        integration_df['Capacity'] = integration_df['Current-Battery'] * integration_df['Time_diff']
-
-                        actual_capacity = abs(integration_df['Capacity'].sum())
-                        soh_percent = (actual_capacity / nominal_capacity) * 100
-
-                        # SOH Result Display
-                        st.markdown("### 🔋 Battery SOH Result")
-                        st.metric(
-                            label="Estimated SOH (%)",
-                            value=f"{soh_percent:.2f}%",
-                            delta=f"Actual Capacity: {actual_capacity:.2f} Ah"
+                
+try:
+    st.subheader("🔌 Battery State of Health (SOH) - Coulomb Counting")
+    
+                    # Inputs from user
+                    col1, col2, col3 = st.columns(3)
+    
+                    with col1:
+                        nominal_capacity = st.number_input(
+                            "Nominal Battery Capacity (Ah):",
+                            value=33.0,
+                            min_value=1.0,
+                            step=0.1,
+                            help="Enter the original nominal capacity (Ah) of your battery."
                         )
-
-                        # Gauge Chart SOH
-                        fig_soh = go.Figure(go.Indicator(
-                            mode="gauge+number",
-                            value=soh_percent,
-                            title={'text': "Battery SOH (%)"},
-                            gauge={
-                                'axis': {'range': [0, 100]},
-                                'bar': {'color': "cyan"},
-                                'steps': [
-                                    {'range': [0, 50], 'color': "red"},
-                                    {'range': [50, 70], 'color': "orange"},
-                                    {'range': [70, 85], 'color': "yellow"},
-                                    {'range': [85, 100], 'color': "green"}
-                                ],
-                                'threshold': {
-                                    'line': {'color': "black", 'width': 4},
-                                    'thickness': 0.75,
-                                    'value': 80
+    
+                    with col2:
+                        t1_date = st.date_input(
+                            "Integration Start Date (t1):",
+                            value=voltage_battery_df["Timestamp"].min().date()
+                        )
+    
+                    with col3:
+                        t2_date = st.date_input(
+                            "Integration End Date (t2):",
+                            value=voltage_battery_df["Timestamp"].max().date()
+                        )
+    
+                    # Timestamps UTC explícitos
+                    t1 = pd.Timestamp(datetime.combine(t1_date, datetime.min.time()), tz='UTC')
+                    t2 = pd.Timestamp(datetime.combine(t2_date, datetime.max.time()), tz='UTC')
+    
+                    # Asegúrate que el DataFrame esté disponible
+                    current_battery_df = series_data.get("Current-Battery")
+    
+                    if current_battery_df is not None:
+                        mask = (current_battery_df["Timestamp"] >= t1) & (current_battery_df["Timestamp"] <= t2)
+                        integration_df = current_battery_df.loc[mask]
+    
+                        if integration_df.empty:
+                            st.warning("No Current-Battery data within selected time range.")
+                        else:
+                            integration_df = integration_df.sort_values(by="Timestamp")
+                            integration_df['Time_diff'] = integration_df['Timestamp'].diff().dt.total_seconds().fillna(0) / 3600
+                            integration_df['Capacity'] = integration_df['Current-Battery'] * integration_df['Time_diff']
+    
+                            actual_capacity = abs(integration_df['Capacity'].sum())
+                            soh_percent = (actual_capacity / nominal_capacity) * 100
+    
+                            # SOH Result Display
+                            st.markdown("### 🔋 Battery SOH Result")
+                            st.metric(
+                                label="Estimated SOH (%)",
+                                value=f"{soh_percent:.2f}%",
+                                delta=f"Actual Capacity: {actual_capacity:.2f} Ah"
+                            )
+    
+                            # Gauge Chart SOH
+                            fig_soh = go.Figure(go.Indicator(
+                                mode="gauge+number",
+                                value=soh_percent,
+                                title={'text': "Battery SOH (%)"},
+                                gauge={
+                                    'axis': {'range': [0, 100]},
+                                    'bar': {'color': "cyan"},
+                                    'steps': [
+                                        {'range': [0, 50], 'color': "red"},
+                                        {'range': [50, 70], 'color': "orange"},
+                                        {'range': [70, 85], 'color': "yellow"},
+                                        {'range': [85, 100], 'color': "green"}
+                                    ],
+                                    'threshold': {
+                                        'line': {'color': "black", 'width': 4},
+                                        'thickness': 0.75,
+                                        'value': 80
+                                    }
                                 }
-                            }
-                        ))
+                            ))
+    
+                            fig_soh.update_layout(height=300, template="plotly_dark")
+                            st.plotly_chart(fig_soh, use_container_width=True)
+    
+                            # Explanation
+                            st.markdown("""
+                            **How SOH is Calculated:**
+                            - Integrates battery current over the period (`t1` to `t2`).
+                            - Compares the resulting capacity (Ah) against the nominal battery capacity.
+                            - Displays SOH as the remaining battery health percentage.
+                            """)
+    
+                    else:
+                        st.error("Current-Battery data not found in the uploaded JSON.")
+except Exception as e:
+    st.error(f"Error in SOH Calculation: {str(e)}")
 
-                        fig_soh.update_layout(height=300, template="plotly_dark")
-                        st.plotly_chart(fig_soh, use_container_width=True)
-
-                        # Explanation
-                        st.markdown("""
-                        **How SOH is Calculated:**
-                        - Integrates battery current over the period (`t1` to `t2`).
-                        - Compares the resulting capacity (Ah) against the nominal battery capacity.
-                        - Displays SOH as the remaining battery health percentage.
-                        """)
-
-                else:
-                    st.error("Current-Battery data not found in the uploaded JSON.")
 
 
 
