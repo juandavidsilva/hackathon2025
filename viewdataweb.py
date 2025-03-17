@@ -388,6 +388,9 @@ def process_file(uploaded_file):
                         help="Enter the original nominal capacity (Ah) of your battery."
                     )
 
+                voltage_battery_df["Timestamp"] = pd.to_datetime(voltage_battery_df["Timestamp"], utc=True)
+                current_battery_df["Timestamp"] = pd.to_datetime(current_battery_df["Timestamp"], utc=True)
+
                 with col2:
                     t1_date = st.date_input(
                         "Integration Start Date (t1):",
@@ -405,6 +408,9 @@ def process_file(uploaded_file):
                 # Combinar fechas seleccionadas con horas predeterminadas (medianoche)
                 t1 = datetime.combine(t1_date, datetime.min.time())
                 t2 = datetime.combine(t2_date, datetime.max.time())
+                
+                mask = (current_battery_df["Timestamp"] >= t1) & (current_battery_df["Timestamp"] <= t2)
+                integration_df = current_battery_df.loc[mask]
 
                 # Check date validity
                 if t1 >= t2:
