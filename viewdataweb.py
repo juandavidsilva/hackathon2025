@@ -387,18 +387,22 @@ def process_file(uploaded_file):
                     )
 
                 with col2:
-                    t1 = st.datetime_input(
-                        "Integration Start Time (t1):",
-                        value=voltage_battery_df["Timestamp"].min(),
-                        help="Select the start time for Coulomb counting integration."
+                    t1_date = st.date_input(
+                        "Integration Start Date (t1):",
+                        value=voltage_battery_df["Timestamp"].min().date(),
+                        help="Select the start date for Coulomb counting integration."
                     )
 
                 with col3:
-                    t2 = st.datetime_input(
-                        "Integration End Time (t2):",
-                        value=voltage_battery_df["Timestamp"].max(),
-                        help="Select the end time for Coulomb counting integration."
+                    t2_date = st.date_input(
+                        "Integration End Date (t2):",
+                        value=voltage_battery_df["Timestamp"].max().date(),
+                        help="Select the end date for Coulomb counting integration."
                     )
+
+                # Combinar fechas seleccionadas con horas predeterminadas (medianoche)
+                t1 = datetime.combine(t1_date, datetime.min.time())
+                t2 = datetime.combine(t2_date, datetime.max.time())
 
                 # Check date validity
                 if t1 >= t2:
