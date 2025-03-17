@@ -451,7 +451,7 @@ def process_file(uploaded_file):
                                     'value': 80
                                 }
                             }
-                        )
+                        ))
 
                         fig_soh.update_layout(height=300, template="plotly_dark")
                         st.plotly_chart(fig_soh, use_container_width=True)
