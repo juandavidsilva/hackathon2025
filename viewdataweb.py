@@ -372,6 +372,10 @@ def process_file(uploaded_file):
                     template="plotly_dark"
                 )
                 st.plotly_chart(fig, use_container_width=True)
+            
+            except (IndexError, AttributeError):
+                st.error("Error.")
+                return
 
 
         st.subheader("🔌 Battery State of Health (SOH) - Coulomb Counting")
