@@ -9,13 +9,15 @@ import time
 st.set_page_config(page_title="JSON Battery Data Analyzer", layout="wide")
 st.title("📊 JSON Battery Data Analyzer")
 
-# Reset button
-if st.button("🔄 Reset App"):
-    st.cache_data.clear()
-    st.rerun()
 
 # Main function
 def main():
+
+    # Reset button
+    if st.button("🔄 Reset App"):
+        st.cache_data.clear()
+        st.rerun()
+
     uploaded_file = st.file_uploader("📂 Upload JSON File", type=["json"], key="main_file")
 
     if uploaded_file:
