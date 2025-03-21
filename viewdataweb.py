@@ -106,10 +106,37 @@ def process_battery(series_data):
     remaining_cycles = max(0, round(total_cycles - len(daily), 2))
     lifecycle_percent = (remaining_cycles / total_cycles * 100).round(2) if total_cycles > 0 else 0
 
-    st.metric("Average DoD (%)", avg_dod)
-    st.metric("Estimated Total Cycles", total_cycles)
-    st.metric("Remaining Cycles", remaining_cycles)
-    st.metric("Battery Lifecycle Remaining (%)", lifecycle_percent)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Average DoD (%)", avg_dod)
+        st.metric("Estimated Total Cycles", total_cycles)
+        st.metric("Remaining Cycles", remaining_cycles)
+        st.metric("Battery Lifecycle Remaining (%)", lifecycle_percent)
+
+    with col2:
+        gauge_fig = go.Figure(go.Indicator(
+            mode="gauge+number+delta",
+            value=lifecycle_percent,
+            title={"text": "Battery Life Remaining %"},
+            gauge={
+                'axis': {'range': [0, 100], 'tickwidth': 1},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 20], 'color': "red"},
+                    {'range': [20, 40], 'color': "orange"},
+                    {'range': [40, 60], 'color': "yellow"},
+                    {'range': [60, 80], 'color': "lightgreen"},
+                    {'range': [80, 100], 'color': "green"}
+                ],
+                'threshold': {
+                    'line': {'color': "black", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 20
+                }
+            }
+        ))
+        gauge_fig.update_layout(height=300, template="plotly_dark")
+        st.plotly_chart(gauge_fig, use_container_width=True)
 
     st.subheader("Daily Depth of Discharge (DoD) Chart")
     fig = go.Figure()
