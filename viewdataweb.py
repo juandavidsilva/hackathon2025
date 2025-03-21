@@ -7,18 +7,18 @@ import time
 
 # Streamlit UI configuration
 st.set_page_config(page_title="JSON Battery Data Analyzer", layout="wide")
-st.title("\ud83d\udcca JSON Battery Data Analyzer")
+st.title("📊 JSON Battery Data Analyzer")
 
 # Reset button
-if st.button("\ud83d\udd04 Reset App"):
+if st.button("🔄 Reset App"):
     st.experimental_rerun()
 
 # Main function
 def main():
-    tab1, tab2, tab3 = st.tabs(["\ud83d\udcc8 Data Visualization", "\ud83d\udd0b Battery Analysis", "\ud83d\udd22 Compression Analysis"])
+    tab1, tab2, tab3 = st.tabs(["📈 Data Visualization", "🔋 Battery Analysis", "🧮 Compression Analysis"])
 
     with tab1:
-        json_file = st.file_uploader("\ud83d\udcc2 Upload JSON File", type=["json"])
+        json_file = st.file_uploader("📂 Upload JSON File", type=["json"])
         if json_file:
             with st.spinner("Processing data..."):
                 time.sleep(1)
@@ -27,7 +27,7 @@ def main():
             st.info("Upload a JSON file to begin analysis.")
 
     with tab2:
-        json_file = st.file_uploader("\ud83d\udcc2 Upload JSON File for Battery Analysis", type=["json"], key="battery_file")
+        json_file = st.file_uploader("📂 Upload JSON File for Battery Analysis", type=["json"], key="battery_file")
         if json_file:
             with st.spinner("Analyzing battery..."):
                 process_battery(json_file)
@@ -35,8 +35,8 @@ def main():
     with tab3:
         code = st.text_input("Enter access code for Compression Analysis:", type="password")
         if code == "1988":
-            file_full = st.file_uploader("Upload Full Data JSON", type=["json"], key="full")
-            file_sample = st.file_uploader("Upload Échantillonnage JSON", type=["json"], key="sample")
+            file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
+            file_sample = st.file_uploader("📂 Upload Échantillonnage JSON", type=["json"], key="sample")
             if file_full and file_sample:
                 analyze_compression(file_full, file_sample)
         else:
@@ -78,16 +78,16 @@ def process_file(uploaded_file):
     data = load_json(uploaded_file)
     series_data = extract_series(data)
 
-    st.subheader("\ud83d\udd0b Voltage Data")
+    st.subheader("🔋 Voltage Data")
     st.plotly_chart(plot_series(series_data, ["Voltage-Battery", "Voltage-Solar"],
                                 "Voltage Trends", "Voltage (V)"), use_container_width=True)
 
-    st.subheader("\u26a1 Current Data")
+    st.subheader("⚡ Current Data")
     st.plotly_chart(plot_series(series_data, ["Current-Battery", "Current-Solar"],
                                 "Current Trends", "Current (A)"), use_container_width=True)
 
     if "UpTime" in series_data:
-        st.subheader("\u23f3 Uptime")
+        st.subheader("⏳ Uptime")
         st.plotly_chart(plot_series(series_data, ["UpTime"], "System Uptime", "Uptime (s)"),
                         use_container_width=True)
 
