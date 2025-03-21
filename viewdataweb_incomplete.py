@@ -192,10 +192,9 @@ def process_file(uploaded_file):
                 # Calculate the number of valid days (for cycle counting)
                 valid_days = len(daily_stats)
                 
-                # Calculate battery cycles using the formula 0,0622*DoD2 - 19,599*DoD + 1461,6 (old formula y = -9x + 1180)
+                # Calculate battery cycles using the formula y = -9x + 1180
                 # where x is the average DoD
-                #total_cycles = -9 * avg_dod + 1180
-                total_cycles  = 0,0622*avg_dod**2 - 19,599*avg_dod + 1461,6
+                total_cycles = -9 * avg_dod + 1180
                 remaining_cycles = total_cycles - valid_days
                 
                 # Format the cycle numbers
@@ -343,7 +342,7 @@ def process_file(uploaded_file):
                 
                 # Display cycle information
                 st.markdown("### Battery Cycle Information")
-                st.markdown(f"**Formula Used:** Cycles = -0,0622*DoD2 - 19,599*DoD + 1461,6")
+                st.markdown(f"**Formula Used:** Cycles = -9 × DoD + 1180")
                 st.markdown(f"**Average DoD:** {avg_dod}%")
                 st.markdown(f"**Total Estimated Cycles:** {total_cycles}")
                 st.markdown(f"**Days with Valid Data:** {valid_days}")
@@ -373,10 +372,102 @@ def process_file(uploaded_file):
                     template="plotly_dark"
                 )
                 st.plotly_chart(fig, use_container_width=True)
-            
-            except (IndexError, AttributeError):
-                st.error("Error.")
-                return
+
+
+               
+
+                st.subheader("🔌 Battery State of Health (SOH) - Coulomb Counting")
+
+                # Inputs from user
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    nominal_capacity = st.number_input(
+                        "Nominal Battery Capacity (Ah):",
+                        value=33.0,
+                        min_value=1.0,
+                        step=0.1,
+                        help="Enter the original nominal capacity (Ah) of your battery."
+                    )
+
+                with col2:
+                    t1_date = st.date_input(
+                        "Integration Start Date (t1):",
+                        value=voltage_battery_df["Timestamp"].min().date()
+                    )
+
+                with col3:
+                    t2_date = st.date_input(
+                        "Integration End Date (t2):",
+                        value=voltage_battery_df["Timestamp"].max().date()
+                    )
+
+                # Timestamps UTC explícitos
+                t1 = pd.Timestamp(datetime.combine(t1_date, datetime.min.time()), tz='UTC')
+                t2 = pd.Timestamp(datetime.combine(t2_date, datetime.max.time()), tz='UTC')
+
+                # Asegúrate que el DataFrame esté disponible
+                current_battery_df = series_data.get("Current-Battery")
+
+                if current_battery_df is not None:
+                    mask = (current_battery_df["Timestamp"] >= t1) & (current_battery_df["Timestamp"] <= t2)
+                    integration_df = current_battery_df.loc[mask]
+
+                    if integration_df.empty:
+                        st.warning("No Current-Battery data within selected time range.")
+                    else:
+                        integration_df = integration_df.sort_values(by="Timestamp")
+                        integration_df['Time_diff'] = integration_df['Timestamp'].diff().dt.total_seconds().fillna(0) / 3600
+                        integration_df['Capacity'] = integration_df['Current-Battery'] * integration_df['Time_diff']
+
+                        actual_capacity = abs(integration_df['Capacity'].sum())
+                        soh_percent = (actual_capacity / nominal_capacity) * 100
+
+                        # SOH Result Display
+                        st.markdown("### 🔋 Battery SOH Result")
+                        st.metric(
+                            label="Estimated SOH (%)",
+                            value=f"{soh_percent:.2f}%",
+                            delta=f"Actual Capacity: {actual_capacity:.2f} Ah"
+                        )
+
+                        # Gauge Chart SOH
+                        fig_soh = go.Figure(go.Indicator(
+                            mode="gauge+number",
+                            value=soh_percent,
+                            title={'text': "Battery SOH (%)"},
+                            gauge={
+                                'axis': {'range': [0, 100]},
+                                'bar': {'color': "cyan"},
+                                'steps': [
+                                    {'range': [0, 50], 'color': "red"},
+                                    {'range': [50, 70], 'color': "orange"},
+                                    {'range': [70, 85], 'color': "yellow"},
+                                    {'range': [85, 100], 'color': "green"}
+                                ],
+                                'threshold': {
+                                    'line': {'color': "black", 'width': 4},
+                                    'thickness': 0.75,
+                                    'value': 80
+                                }
+                            }
+                        ))
+
+                        fig_soh.update_layout(height=300, template="plotly_dark")
+                        st.plotly_chart(fig_soh, use_container_width=True)
+
+                        # Explanation
+                        st.markdown("""
+                        **How SOH is Calculated:**
+                        - Integrates battery current over the period (`t1` to `t2`).
+                        - Compares the resulting capacity (Ah) against the nominal battery capacity.
+                        - Displays SOH as the remaining battery health percentage.
+                        """)
+
+                else:
+                    st.error("Current-Battery data not found in the uploaded JSON.")
+
+
 
 if __name__ == "__main__":
     main()
