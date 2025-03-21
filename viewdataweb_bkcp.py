@@ -2,6 +2,8 @@
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
+from datetime import datetime, timezone
+
 import time
 import json
 
@@ -190,9 +192,10 @@ def process_file(uploaded_file):
                 # Calculate the number of valid days (for cycle counting)
                 valid_days = len(daily_stats)
                 
-                # Calculate battery cycles using the formula y = -9x + 1180
+                # Calculate battery cycles using the formula 0,0622*DoD2 - 19,599*DoD + 1461,6 (old formula y = -9x + 1180)
                 # where x is the average DoD
-                total_cycles = -9 * avg_dod + 1180
+                #total_cycles = -9 * avg_dod + 1180
+                total_cycles  = 0.0622*avg_dod**2 - 19.599*avg_dod + 1461.6
                 remaining_cycles = total_cycles - valid_days
                 
                 # Format the cycle numbers
@@ -340,7 +343,7 @@ def process_file(uploaded_file):
                 
                 # Display cycle information
                 st.markdown("### Battery Cycle Information")
-                st.markdown(f"**Formula Used:** Cycles = -9 × DoD + 1180")
+                st.markdown(f"**Formula Used:** Cycles = -0,0622*DoD2 - 19,599*DoD + 1461,6")
                 st.markdown(f"**Average DoD:** {avg_dod}%")
                 st.markdown(f"**Total Estimated Cycles:** {total_cycles}")
                 st.markdown(f"**Days with Valid Data:** {valid_days}")
@@ -370,13 +373,10 @@ def process_file(uploaded_file):
                     template="plotly_dark"
                 )
                 st.plotly_chart(fig, use_container_width=True)
-                
-                
-            except Exception as e:
-                st.error(f"Error in Battery Analysis: {str(e)}")
-                st.write("Please check your data structure and try again.")
-        else:
-            st.warning("No battery voltage data found in the uploaded file.")
+            
+            except (IndexError, AttributeError):
+                st.error("Error.")
+                return
 
 if __name__ == "__main__":
     main()
