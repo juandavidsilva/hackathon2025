@@ -195,7 +195,7 @@ def process_file(uploaded_file):
                 # Calculate battery cycles using the formula 0,0622*DoD2 - 19,599*DoD + 1461,6 (old formula y = -9x + 1180)
                 # where x is the average DoD
                 #total_cycles = -9 * avg_dod + 1180
-                total_cycles  = 0,0622*avg_dod**2 - 19,599*avg_dod + 1461,6
+                total_cycles  = 0.0622*avg_dod**2 - 19.599*avg_dod + 1461.6
                 remaining_cycles = total_cycles - valid_days
                 
                 # Format the cycle numbers
