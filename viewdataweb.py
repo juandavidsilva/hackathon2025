@@ -96,7 +96,7 @@ def process_battery(series_data):
         st.error("Voltage-Battery data missing.")
         return
 
-    voltage_full_charge = st.number_input("Full Charge Voltage (V):", value=13.0, step=0.1, format="%.1f")
+    voltage_full_charge = st.number_input("Full Charge Voltage (V):", value=13.7, step=0.1, format="%.1f")
     voltage_df["Date"] = voltage_df["Timestamp"].dt.date
     daily = voltage_df.groupby("Date").agg({"Voltage-Battery": ["min"]}).reset_index()
     daily.columns = ["Date", "Min Voltage"]
