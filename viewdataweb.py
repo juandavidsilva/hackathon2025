@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 import time
 
 # Streamlit UI configuration
@@ -11,36 +11,38 @@ st.title("📊 JSON Battery Data Analyzer")
 
 # Reset button
 if st.button("🔄 Reset App"):
-    st.experimental_rerun()
+    st.cache_data.clear()
+    st.rerun()
 
 # Main function
 def main():
-    tab1, tab2, tab3 = st.tabs(["📈 Data Visualization", "🔋 Battery Analysis", "🧮 Compression Analysis"])
+    uploaded_file = st.file_uploader("📂 Upload JSON File", type=["json"], key="main_file")
 
-    with tab1:
-        json_file = st.file_uploader("📂 Upload JSON File", type=["json"])
-        if json_file:
-            with st.spinner("Processing data..."):
-                time.sleep(1)
-                process_file(json_file)
-        else:
-            st.info("Upload a JSON file to begin analysis.")
+    if uploaded_file:
+        with st.spinner("Processing data..."):
+            time.sleep(1)
+            data = load_json(uploaded_file)
+            series_data = extract_series(data)
 
-    with tab2:
-        json_file = st.file_uploader("📂 Upload JSON File for Battery Analysis", type=["json"], key="battery_file")
-        if json_file:
-            with st.spinner("Analyzing battery..."):
-                process_battery(json_file)
+        tab1, tab2, tab3 = st.tabs(["📈 Data Visualization", "🔋 Battery Analysis", "🧮 Compression Analysis"])
 
-    with tab3:
-        code = st.text_input("Enter access code for Compression Analysis:", type="password")
-        if code == "1988":
-            file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
-            file_sample = st.file_uploader("📂 Upload Échantillonnage JSON", type=["json"], key="sample")
-            if file_full and file_sample:
-                analyze_compression(file_full, file_sample)
-        else:
-            st.warning("Access code required.")
+        with tab1:
+            visualize_data(series_data)
+
+        with tab2:
+            process_battery(series_data)
+
+        with tab3:
+            code = st.text_input("Enter access code for Compression Analysis:", type="password")
+            if code == "1988":
+                file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
+                file_sample = st.file_uploader("📂 Upload Échantillonnage JSON", type=["json"], key="sample")
+                if file_full and file_sample:
+                    analyze_compression(file_full, file_sample)
+            else:
+                st.warning("Access code required.")
+    else:
+        st.info("Upload a JSON file to begin analysis.")
 
 # Utility functions
 
@@ -54,8 +56,8 @@ def extract_series(data):
     for log in logs:
         name = log.get("Name")
         values = log.get("Values", [])
-        if name and values and len(values) > 1:
-            df = pd.DataFrame(values[1:])
+        if name and values:
+            df = pd.DataFrame(values)
             df["T"] = pd.to_datetime(df["T"])
             df.rename(columns={"T": "Timestamp", "V": name}, inplace=True)
             series_data[name] = df
@@ -68,16 +70,13 @@ def plot_series(series_data, names, title, y_label):
     for name in names:
         if name in series_data:
             df = series_data[name]
-            fig.add_trace(go.Scatter(x=df["Timestamp"], y=df[name], mode="lines", name=name,
+            fig.add_trace(go.Scatter(x=df["Timestamp"], y=df[name], mode="lines+markers", name=name,
                                      line=dict(color=colors.get(name, "gray"))))
     fig.update_layout(title=title, xaxis_title="Time", yaxis_title=y_label,
                       template="plotly_dark", hovermode="x unified")
     return fig
 
-def process_file(uploaded_file):
-    data = load_json(uploaded_file)
-    series_data = extract_series(data)
-
+def visualize_data(series_data):
     st.subheader("🔋 Voltage Data")
     st.plotly_chart(plot_series(series_data, ["Voltage-Battery", "Voltage-Solar"],
                                 "Voltage Trends", "Voltage (V)"), use_container_width=True)
@@ -91,9 +90,7 @@ def process_file(uploaded_file):
         st.plotly_chart(plot_series(series_data, ["UpTime"], "System Uptime", "Uptime (s)"),
                         use_container_width=True)
 
-def process_battery(uploaded_file):
-    data = load_json(uploaded_file)
-    series_data = extract_series(data)
+def process_battery(series_data):
     voltage_df = series_data.get("Voltage-Battery")
     if voltage_df is None:
         st.error("Voltage-Battery data missing.")
@@ -107,10 +104,20 @@ def process_battery(uploaded_file):
     avg_dod = daily["DoD (%)"].mean().round(2)
     total_cycles = max(0, round(0.0622*avg_dod**2 - 19.599*avg_dod + 1461.6, 2))
     remaining_cycles = max(0, round(total_cycles - len(daily), 2))
+    lifecycle_percent = (remaining_cycles / total_cycles * 100).round(2) if total_cycles > 0 else 0
+
     st.metric("Average DoD (%)", avg_dod)
     st.metric("Estimated Total Cycles", total_cycles)
     st.metric("Remaining Cycles", remaining_cycles)
+    st.metric("Battery Lifecycle Remaining (%)", lifecycle_percent)
 
+    st.subheader("Daily Depth of Discharge (DoD) Chart")
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=daily['Date'], y=daily['DoD (%)'], name='DoD (%)', marker_color='red'))
+    fig.update_layout(title="Daily Depth of Discharge", xaxis_title="Date", yaxis_title="DoD (%)", template="plotly_dark")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(daily)
 
 def analyze_compression(file_full, file_sample):
     full_data = load_json(file_full)
@@ -118,7 +125,8 @@ def analyze_compression(file_full, file_sample):
     full_series = extract_series(full_data)
     sample_series = extract_series(sample_data)
 
-    for key in ["Voltage-Battery", "Current-Battery"]:
+    keys = ["Voltage-Battery", "Current-Battery"]
+    for idx, key in enumerate(keys):
         full_count = len(full_series.get(key, pd.DataFrame()))
         sample_count = len(sample_series.get(key, pd.DataFrame()))
         compression = 100 - round((sample_count / full_count) * 100, 2) if full_count else 100
@@ -128,11 +136,9 @@ def analyze_compression(file_full, file_sample):
                                             'bar': {'color': "orange"}},
                                      title={'text': f"Compression %"}))
         fig.update_layout(template="plotly_dark")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=f"compression_chart_{idx}")
 
-    # Battery Lifecycle Remaining
-    def get_lifecycle(data):
-        series = extract_series(data)
+    def get_lifecycle(series):
         voltage_df = series.get("Voltage-Battery")
         if voltage_df is None:
             return 0
@@ -144,8 +150,8 @@ def analyze_compression(file_full, file_sample):
         total_cycles = max(0, round(0.0622*avg_dod**2 - 19.599*avg_dod + 1461.6, 2))
         return total_cycles - len(daily)
 
-    full_remaining = get_lifecycle(full_data)
-    sample_remaining = get_lifecycle(sample_data)
+    full_remaining = get_lifecycle(full_series)
+    sample_remaining = get_lifecycle(sample_series)
     abs_error = abs(full_remaining - sample_remaining)
 
     st.metric("Full Data Remaining Cycles", round(full_remaining, 2))
