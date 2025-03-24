@@ -174,7 +174,7 @@ def analyze_compression(file_full, file_sample):
         voltage_df["Date"] = voltage_df["Timestamp"].dt.date
         daily = voltage_df.groupby("Date").agg({"Voltage-Battery": ["min"]}).reset_index()
         daily.columns = ["Date", "Min Voltage"]
-        dod = ((13.0 - daily["Min Voltage"]) / 13.0 * 100).round(2)
+        dod = ((13.7 - daily["Min Voltage"]) / 13.7 * 100).round(2)
         avg_dod = dod.mean().round(2)
         total_cycles = max(0, round(0.0622*avg_dod**2 - 19.599*avg_dod + 1461.6, 2))
         return total_cycles - len(daily)
