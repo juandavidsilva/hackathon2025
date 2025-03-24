@@ -154,6 +154,19 @@ def analyze_compression(file_full, file_sample):
     full_series = extract_series(full_data)
     sample_series = extract_series(sample_data)
 
+    keys = ["Voltage-Battery", "Current-Battery"]
+    for idx, key in enumerate(keys):
+        full_count = len(full_series.get(key, pd.DataFrame()))
+        sample_count = len(sample_series.get(key, pd.DataFrame()))
+        compression = 100 - round((sample_count / full_count) * 100, 2) if full_count else 100
+        st.subheader(f"Compression Ratio for {key}")
+        fig = go.Figure(go.Indicator(mode="gauge+number", value=compression,
+                                     gauge={'axis': {'range': [0, 100]},
+                                            'bar': {'color': "orange"}},
+                                     title={'text': f"Compression %"}))
+        fig.update_layout(template="plotly_dark")
+        st.plotly_chart(fig, use_container_width=True, key=f"compression_chart_{idx}")
+
     def get_lifecycle(series):
         voltage_df = series.get("Voltage-Battery")
         if voltage_df is None:
@@ -168,40 +181,12 @@ def analyze_compression(file_full, file_sample):
 
     full_remaining = get_lifecycle(full_series)
     sample_remaining = get_lifecycle(sample_series)
-
-    # Generate normal distribution data
-    std_dev = 10  # hypothetical standard deviation
-    x = np.linspace(full_remaining - 4*std_dev, full_remaining + 4*std_dev, 500)
-    y = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - full_remaining)/std_dev)**2)
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name='Normal Distribution'))
-
-    # Add lines for mean and standard deviations
-    for i in range(1, 4):
-        fig.add_vline(x=full_remaining + i*std_dev, line_dash="dot", line_color="gray",
-                      annotation_text=f"+{i}σ", annotation_position="top right")
-        fig.add_vline(x=full_remaining - i*std_dev, line_dash="dot", line_color="gray",
-                      annotation_text=f"-{i}σ", annotation_position="top left")
-
-    # Mark sample data
-    fig.add_vline(x=sample_remaining, line_color="red", line_width=2,
-                  annotation_text="Sample Data Remaining Cycles", annotation_position="bottom right")
-
-    fig.update_layout(title='Cycle Distribution and Sample Position',
-                      xaxis_title='Cycles',
-                      yaxis_title='Probability Density',
-                      template='plotly_dark')
-
-    st.plotly_chart(fig, use_container_width=True)
-
     abs_error = abs(full_remaining - sample_remaining)
     sqr_error = (full_remaining - sample_remaining)**2
 
     st.metric("Full Data Remaining Cycles", round(full_remaining, 2))
     st.metric("Sample Data Remaining Cycles", round(sample_remaining, 2))
-    st.metric("Absolute Error", round(abs_error, 3))
-    st.metric("Squared Error", round(sqr_error, 3))
+    st.metric("Absolute Error", round(sqr_error,3))
 
 if __name__ == "__main__":
     main()
