@@ -186,7 +186,7 @@ def analyze_compression(file_full, file_sample):
 
     st.metric("Full Data Remaining Cycles", round(full_remaining, 2))
     st.metric("Sample Data Remaining Cycles", round(sample_remaining, 2))
-    st.metric("Absolute Error", round(sqr_error,3))
+    st.metric("Sqr Error", round(sqr_error,3))
 
 if __name__ == "__main__":
     main()
