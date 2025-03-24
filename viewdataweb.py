@@ -182,10 +182,11 @@ def analyze_compression(file_full, file_sample):
     full_remaining = get_lifecycle(full_series)
     sample_remaining = get_lifecycle(sample_series)
     abs_error = abs(full_remaining - sample_remaining)
+    sqr_error = (full_remaining - sample_remaining)**2
 
     st.metric("Full Data Remaining Cycles", round(full_remaining, 2))
     st.metric("Sample Data Remaining Cycles", round(sample_remaining, 2))
-    st.metric("Absolute Error", round(abs_error, 2))
+    st.metric("Absolute Error", round(sqr_error,3))
 
 if __name__ == "__main__":
     main()
