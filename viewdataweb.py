@@ -35,9 +35,19 @@ def main():
             process_battery(series_data)
 
         with tab3:
+            code = st.text_input("Enter access code for Compression Analysis:", type="password")
+            if code == "1988":
+                file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
+                file_sample = st.file_uploader("📂 Upload Échantillonnage JSON", type=["json"], key="sample")
+                if file_full and file_sample:
+                    analyze_compression(file_full, file_sample)
+            else:
+                st.warning("Access code required.")
+
+
         with tab4:
             compare_soh(series_data)
-
+            compare_soh(series_data)
             code = st.text_input("Enter access code for Compression Analysis:", type="password")
             if code == "1988":
                 file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
@@ -191,6 +201,9 @@ def analyze_compression(file_full, file_sample):
     st.metric("Sample Data Remaining Cycles", round(sample_remaining, 2))
     st.metric("Sqr Error", round(sqr_error,3))
 
+if __name__ == "__main__":
+    main()
+
 
 def compare_soh(series_data):
     voltage_df = series_data.get("Voltage-Battery")
@@ -209,7 +222,7 @@ def compare_soh(series_data):
     daily["Lifecycle Remaining (%)"] = daily.index.to_series().apply(lambda i: max(0, ((total_cycles - i) / total_cycles) * 100)).round(2)
 
     # Linear SOH baseline (100% to 0% over 1460 days)
-    baseline_days = (daily["Date"] - daily["Date"].min()).dt.days
+    baseline_days = (pd.to_datetime(daily["Date"]) - pd.to_datetime(daily["Date"]).min()).dt.days
     daily["Ideal Linear SOH (%)"] = ((1460 - baseline_days) / 1460 * 100).clip(lower=0).round(2)
 
     fig = go.Figure()
@@ -222,7 +235,3 @@ def compare_soh(series_data):
     st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(daily[["Date", "Lifecycle Remaining (%)", "Ideal Linear SOH (%)"]])
-
-if __name__ == "__main__":
-    main()
-
