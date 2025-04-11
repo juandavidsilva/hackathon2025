@@ -108,7 +108,6 @@ def process_battery(series_data):
     voltage_df = series_data.get("Voltage-Battery")
     if voltage_df is None:
         st.error("Voltage-Battery data missing.")
-        return
 
     voltage_full_charge = st.number_input("Full Charge Voltage (V):", value=13.7, step=0.1, format="%.1f")
     voltage_df["Date"] = voltage_df["Timestamp"].dt.date
@@ -207,7 +206,6 @@ if __name__ == "__main__":
     voltage_df = series_data.get("Voltage-Battery")
     if voltage_df is None:
         st.error("Voltage-Battery data missing.")
-        return
 
     voltage_full_charge = 13.7  # Default full voltage
     voltage_df["Date"] = voltage_df["Timestamp"].dt.date
