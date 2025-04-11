@@ -26,7 +26,7 @@ def main():
             data = load_json(uploaded_file)
             series_data = extract_series(data)
 
-        tab1, tab2, tab3 = st.tabs(["📈 Data Visualization", "🔋 Battery Analysis", "🧮 Compression Analysis"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📈 Data Visualization", "🔋 Battery Analysis", "🧮 Compression Analysis", "📊 Compare SOH"])
 
         with tab1:
             visualize_data(series_data)
@@ -35,6 +35,9 @@ def main():
             process_battery(series_data)
 
         with tab3:
+        with tab4:
+            compare_soh(series_data)
+
             code = st.text_input("Enter access code for Compression Analysis:", type="password")
             if code == "1988":
                 file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
@@ -188,5 +191,38 @@ def analyze_compression(file_full, file_sample):
     st.metric("Sample Data Remaining Cycles", round(sample_remaining, 2))
     st.metric("Sqr Error", round(sqr_error,3))
 
+
+def compare_soh(series_data):
+    voltage_df = series_data.get("Voltage-Battery")
+    if voltage_df is None:
+        st.error("Voltage-Battery data missing.")
+        return
+
+    voltage_full_charge = 13.7  # Default full voltage
+    voltage_df["Date"] = voltage_df["Timestamp"].dt.date
+    daily = voltage_df.groupby("Date").agg({"Voltage-Battery": ["min"]}).reset_index()
+    daily.columns = ["Date", "Min Voltage"]
+    daily["DoD (%)"] = ((voltage_full_charge - daily["Min Voltage"]) / voltage_full_charge * 100).round(2)
+    avg_dod = daily["DoD (%)"].mean().round(2)
+    total_cycles = max(0, round(0.0622 * avg_dod**2 - 19.599 * avg_dod + 1461.6, 2))
+    
+    daily["Lifecycle Remaining (%)"] = daily.index.to_series().apply(lambda i: max(0, ((total_cycles - i) / total_cycles) * 100)).round(2)
+
+    # Linear SOH baseline (100% to 0% over 1460 days)
+    baseline_days = (daily["Date"] - daily["Date"].min()).dt.days
+    daily["Ideal Linear SOH (%)"] = ((1460 - baseline_days) / 1460 * 100).clip(lower=0).round(2)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=daily["Date"], y=daily["Lifecycle Remaining (%)"],
+                             mode='lines+markers', name="Actual SOH (%)", line=dict(color="cyan")))
+    fig.add_trace(go.Scatter(x=daily["Date"], y=daily["Ideal Linear SOH (%)"],
+                             mode='lines', name="Linear SOH Decline", line=dict(color="orange", dash='dash')))
+    fig.update_layout(title="Battery SOH Comparison", xaxis_title="Date", yaxis_title="State of Health (%)",
+                      template="plotly_dark", hovermode="x unified")
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(daily[["Date", "Lifecycle Remaining (%)", "Ideal Linear SOH (%)"]])
+
 if __name__ == "__main__":
     main()
+
