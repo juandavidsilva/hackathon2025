@@ -47,7 +47,6 @@ def main():
 
         with tab4:
             compare_soh(series_data)
-            compare_soh(series_data)
             code = st.text_input("Enter access code for Compression Analysis:", type="password")
             if code == "1988":
                 file_full = st.file_uploader("📂 Upload Full Data JSON", type=["json"], key="full")
@@ -205,7 +204,6 @@ if __name__ == "__main__":
     main()
 
 
-def compare_soh(series_data):
     voltage_df = series_data.get("Voltage-Battery")
     if voltage_df is None:
         st.error("Voltage-Battery data missing.")
