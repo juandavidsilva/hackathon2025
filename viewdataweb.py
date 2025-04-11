@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 import time
 
-# Streamlit UI configuration
+# Streamlit UI configuration new
 st.set_page_config(page_title="JSON Battery Data Analyzer", layout="wide")
 st.title("📊 JSON Battery Data Analyzer")
 
